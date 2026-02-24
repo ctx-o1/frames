@@ -26,6 +26,7 @@ const loadingFilename = document.getElementById('loadingFilename');
 let currentFrames = [];
 let currentFileName = '';
 let currentGifUrl = null;
+let isGridView = false;
 
 uploadZone.addEventListener('click', () => fileInput.click());
 
@@ -215,6 +216,8 @@ function downloadFrame(idx) {
     link.click();
 }
 
+document.getElementById('viewToggle').addEventListener('click', toggleViewMode);
+
 document.getElementById('downloadAll').addEventListener('click', async () => {
     if (!currentFrames.length) return;
     
@@ -234,6 +237,23 @@ document.getElementById('downloadAll').addEventListener('click', async () => {
 
 
 
+function toggleViewMode() {
+    isGridView = !isGridView;
+    const filmScroll = document.getElementById('filmScroll');
+    const gridIcon = document.getElementById('gridIcon');
+    const scrollIcon = document.getElementById('scrollIcon');
+    
+    if (isGridView) {
+        filmScroll.classList.add('grid-mode');
+        gridIcon.style.display = 'none';
+        scrollIcon.style.display = 'block';
+    } else {
+        filmScroll.classList.remove('grid-mode');
+        gridIcon.style.display = 'block';
+        scrollIcon.style.display = 'none';
+    }
+}
+
 window.resetApp = function() {
     // Clear canvas references to free memory
     currentFrames.forEach(f => {
@@ -242,6 +262,13 @@ window.resetApp = function() {
     });
     currentFrames = [];
     currentFileName = '';
+    isGridView = false;
+    const filmScroll = document.getElementById('filmScroll');
+    const gridIcon = document.getElementById('gridIcon');
+    const scrollIcon = document.getElementById('scrollIcon');
+    filmScroll.classList.remove('grid-mode');
+    gridIcon.style.display = 'block';
+    scrollIcon.style.display = 'none';
     if (currentGifUrl) {
         URL.revokeObjectURL(currentGifUrl);
         currentGifUrl = null;

@@ -214,6 +214,49 @@ input[type="file"] { display: none; }
     border-radius: 3px;
 }
 
+/* Grid Mode Styles */
+.film-scroll.grid-mode {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-snap-type: none;
+    height: auto;
+    max-height: 55vh;
+    max-height: 55dvh;
+    padding: 1.5rem;
+}
+
+.film-scroll.grid-mode .frame-card {
+    width: auto;
+    margin-left: 0;
+    scroll-snap-align: none;
+}
+
+.film-scroll.grid-mode .frame-image {
+    min-height: 120px;
+    max-height: none;
+}
+
+@media (max-width: 640px) {
+    .film-scroll.grid-mode {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 1rem;
+        max-height: 50vh;
+        max-height: 50dvh;
+    }
+
+    .film-scroll.grid-mode .frame-image {
+        min-height: 100px;
+    }
+
+    .film-scroll.grid-mode .frame-card {
+        margin-left: 0;
+    }
+}
+
 .frame-card {
     flex: 0 0 auto;
     width: 260px;
