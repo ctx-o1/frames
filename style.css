@@ -112,6 +112,8 @@ body:has(.upload-container:not([style*="none"])) .header {
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+
 }
 
 .upload-zone.dragover {
@@ -174,8 +176,7 @@ input[type="file"] { display: none; }
 }
 
 .original-gif img {
-    max-width: 100%;
-    max-height: 200px;
+    max-width: 260px;
     border-radius: 8px;
 }
 
@@ -197,8 +198,8 @@ input[type="file"] { display: none; }
     scrollbar-color: var(--border) transparent;
     align-items: stretch;
     /* Fixed height based on max frame image height + padding */
-    height: 340px;
-    min-height: 340px;
+    /* height: 340px;
+    min-height: 340px; */
 }
 
 .film-scroll::-webkit-scrollbar {
@@ -223,6 +224,7 @@ input[type="file"] { display: none; }
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     z-index: 1;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .frame-card:first-child {
@@ -244,7 +246,7 @@ input[type="file"] { display: none; }
     position: relative;
     /* Use GIF's actual aspect ratio, fallback to square if not set */
     aspect-ratio: var(--gif-aspect-ratio, 1);
-    min-height: 200px;
+    /* min-height: 200px; */
     max-height: 280px;
 }
 
@@ -266,7 +268,7 @@ input[type="file"] { display: none; }
     position: absolute;
     top: 12px;
     left: 12px;
-    background: rgba(30, 58, 95, 0.85);
+    /* background: rgba(30, 58, 95, 0.85); */
     color: #ffffff;
     padding: 0.25rem 0.625rem;
     border-radius: 20px;
@@ -289,7 +291,7 @@ input[type="file"] { display: none; }
     background: rgba(255, 255, 255, 0.9);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    border: 1px solid var(--border);
+    border: 0 solid var(--border);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -314,7 +316,7 @@ input[type="file"] { display: none; }
 .frame-download svg {
     width: 16px;
     height: 16px;
-    stroke-width: 2;
+    stroke-width: 1;
 }
 
 .info-footer {
@@ -541,7 +543,7 @@ input[type="file"] { display: none; }
     .film-container {
         min-height: auto;
         max-height: calc(100dvh - 120px);
-        justify-content: flex-start;
+        /* justify-content: flex-start; */
         padding-bottom: 1rem;
     }
 
