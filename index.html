@@ -33,9 +33,8 @@
             </svg>
             <div class="upload-text">UPLOAD A GIF</div>
             <div class="upload-hint">Supports animated GIFs, preserves transparency</div>
-            
-
         </div>
+        <button class="load-example-btn" id="loadExampleBtn">Try with example</button>
     </div>
 
     <div class="loading" id="loading">
@@ -47,10 +46,25 @@
     </div>
 
     <div class="film-container" id="filmContainer">
-        <div class="original-gif" id="originalGif">
-            <img id="gifImage" src="" alt="Original GIF">
+        <div class="original-gif-wrapper">
+            <div class="original-gif" id="originalGif">
+                <img id="gifImage" src="" alt="Original GIF">
+            </div>
+            <div class="gif-info" id="infoPanel">
+                <div class="info-item">
+                    <span class="info-label">Dimensions</span>
+                    <span class="info-value" id="dimVal">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frames</span>
+                    <span class="info-value" id="frameVal">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Duration</span>
+                    <span class="info-value" id="durVal">-</span>
+                </div>
+            </div>
         </div>
-        <div class="film-scroll" id="filmScroll"></div>
         <div class="frame-actions" id="frameActions">
             <button class="btn btn-icon btn-primary" id="downloadAll" title="Download All">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -66,27 +80,7 @@
                 </svg>
             </button>
         </div>
-    </div>
-
-    <div class="info-footer" id="infoFooter">
-        <div class="info-content">
-            <div class="meta-row">
-                <div class="meta-item-inline">
-                    <span class="meta-label-sub">Dimensions</span>
-                    <span id="dimVal">-</span>
-                </div>
-                <span class="meta-separator">·</span>
-                <div class="meta-item-inline">
-                    <span class="meta-label-sub">Frames</span>
-                    <span id="frameVal">-</span>
-                </div>
-                <span class="meta-separator">·</span>
-                <div class="meta-item-inline">
-                    <span class="meta-label-sub">Duration</span>
-                    <span id="durVal">-</span>
-                </div>
-            </div>
-        </div>
+        <div class="film-scroll" id="filmScroll"></div>
     </div>
 
 

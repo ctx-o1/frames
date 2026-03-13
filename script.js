@@ -1,10 +1,14 @@
 import { parseGIF, decompressFrames } from 'https://esm.sh/gifuct-js@2.0.0';
 
+// Example GIF configuration - just change this path if you rename the file
+const EXAMPLE_GIF_PATH = './bomb.gif';
+
 function createPatchCanvas(frame) {
     const canvas = document.createElement('canvas');
     canvas.width = frame.dims.width;
     canvas.height = frame.dims.height;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    
     const imgData = new ImageData(
         new Uint8ClampedArray(frame.patch),
         frame.dims.width,
@@ -19,7 +23,7 @@ const uploadContainer = document.getElementById('uploadContainer');
 const fileInput = document.getElementById('fileInput');
 const filmScroll = document.getElementById('filmScroll');
 const filmContainer = document.getElementById('filmContainer');
-const infoFooter = document.getElementById('infoFooter');
+const infoPanel = document.getElementById('infoPanel');
 const loading = document.getElementById('loading');
 const loadingFilename = document.getElementById('loadingFilename');
 
@@ -50,6 +54,39 @@ fileInput.addEventListener('change', (e) => {
     if (file) handleFile(file);
 });
 
+// Load example GIF
+document.getElementById('loadExampleBtn')?.addEventListener('click', async () => {
+    const loadBtn = document.getElementById('loadExampleBtn');
+    const originalText = loadBtn?.textContent;
+    
+    try {
+        // Show loading state on button
+        if (loadBtn) loadBtn.textContent = 'Loading...';
+        if (loadBtn) loadBtn.disabled = true;
+        
+        // Show loading screen immediately
+        loading.classList.add('active');
+        const exampleName = EXAMPLE_GIF_PATH.split('/').pop();
+        if (loadingFilename) loadingFilename.textContent = exampleName;
+        uploadContainer.style.display = 'none';
+        
+        const response = await fetch(EXAMPLE_GIF_PATH);
+        if (!response.ok) throw new Error('Failed to load example');
+        const blob = await response.blob();
+        const file = new File([blob], exampleName, { type: 'image/gif' });
+        await handleFile(file);
+    } catch (err) {
+        console.error('Failed to load example:', err);
+        loading.classList.remove('active');
+        uploadContainer.style.display = 'block';
+        alert('Could not load example GIF. Please try uploading your own.');
+    } finally {
+        // Restore button state
+        if (loadBtn) loadBtn.textContent = originalText;
+        if (loadBtn) loadBtn.disabled = false;
+    }
+});
+
 async function handleFile(file) {
     currentFileName = file.name.replace(/\.[^/.]+$/, "");
     currentFrames = [];
@@ -63,7 +100,6 @@ async function handleFile(file) {
     // Clear and hide everything first
     filmScroll.innerHTML = '';
     filmContainer.classList.remove('visible');
-    infoFooter.classList.remove('visible');
     uploadContainer.style.display = 'none';
     loading.classList.add('active');
     
@@ -97,38 +133,55 @@ async function handleFile(file) {
         const mainCanvas = document.createElement('canvas');
         mainCanvas.width = width;
         mainCanvas.height = height;
-        const ctx = mainCanvas.getContext('2d');
+        // Enable alpha for proper transparency handling
+        const ctx = mainCanvas.getContext('2d', { alpha: true });
+        // Disable alpha premultiplication for accurate GIF rendering
+        ctx.imageSmoothingEnabled = false;
 
         // Process all frames while keeping loading screen visible
         const progressText = document.querySelector('#loading .loading-text');
         
+        // Store previous frame canvas for disposal type 3 (restore to previous)
+        let previousFrameCanvas = null;
+        
         for (let i = 0; i < frames.length; i++) {
             const frame = frames[i];
-            
             const patchCanvas = createPatchCanvas(frame);
             
             if (i > 0) {
                 const prev = frames[i - 1];
                 if (prev.disposalType === 2) {
+                    // Restore to background color (clear to transparent)
                     ctx.clearRect(0, 0, width, height);
                 } else if (prev.disposalType === 3 && i > 1) {
-                    ctx.clearRect(0, 0, width, height);
-                    for (let j = 0; j < i - 1; j++) {
-                        const f = frames[j];
-                        const skip = j > 0 && frames[j - 1].disposalType === 3;
-                        if (!skip) {
-                            ctx.drawImage(createPatchCanvas(f), f.dims.left, f.dims.top);
-                        }
+                    // Restore to previous - use saved state
+                    if (previousFrameCanvas) {
+                        ctx.clearRect(0, 0, width, height);
+                        ctx.drawImage(previousFrameCanvas, 0, 0);
+                    } else {
+                        ctx.clearRect(0, 0, width, height);
                     }
                 }
             }
             
+            // Save state before drawing this frame (for next frame's disposal type 3)
+            if (frame.disposalType === 3) {
+                previousFrameCanvas = document.createElement('canvas');
+                previousFrameCanvas.width = width;
+                previousFrameCanvas.height = height;
+                previousFrameCanvas.getContext('2d', { alpha: true }).drawImage(mainCanvas, 0, 0);
+            }
+            
+            // Draw current frame with transparency support
             ctx.drawImage(patchCanvas, frame.dims.left, frame.dims.top);
             
+            // Create frame canvas with transparency
             const frameCanvas = document.createElement('canvas');
             frameCanvas.width = width;
             frameCanvas.height = height;
-            frameCanvas.getContext('2d').drawImage(mainCanvas, 0, 0);
+            const frameCtx = frameCanvas.getContext('2d', { alpha: true });
+            frameCtx.imageSmoothingEnabled = false;
+            frameCtx.drawImage(mainCanvas, 0, 0);
             
             currentFrames.push({
                 canvas: frameCanvas,
@@ -154,7 +207,6 @@ async function handleFile(file) {
         // Hide loading, show everything at once
         loading.classList.remove('active');
         filmContainer.classList.add('visible');
-        infoFooter.classList.add('visible');
         
     } catch (err) {
         console.error(err);
@@ -171,17 +223,29 @@ function renderFilmStrip() {
         const card = document.createElement('div');
         card.className = 'frame-card';
         card.style.zIndex = idx;
+        card.title = 'Click to copy';
         
-        const imgWrap = document.createElement('div');
-        imgWrap.className = 'frame-image';
-        
+        // Frame number badge - now outside the image
         const badge = document.createElement('div');
         badge.className = 'frame-badge';
         badge.textContent = String(idx + 1).padStart(3, '0');
         
+        const imgWrap = document.createElement('div');
+        imgWrap.className = 'frame-image';
+        
         const canvas = frame.canvas;
         canvas.style.width = '100%';
         canvas.style.height = '100%';
+        
+        // Copy overlay - shows on click feedback
+        const copyOverlay = document.createElement('div');
+        copyOverlay.className = 'copy-overlay';
+        copyOverlay.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Copied!</span>
+        `;
         
         // Redesigned minimal download button - icon only, top right
         const dlBtn = document.createElement('button');
@@ -198,13 +262,58 @@ function renderFilmStrip() {
             downloadFrame(idx);
         };
         
-        imgWrap.appendChild(badge);
+        // Click to copy
+        card.addEventListener('click', async (e) => {
+            // Don't copy if clicking download button
+            if (e.target.closest('.frame-download')) return;
+            await copyFrame(idx, copyOverlay);
+        });
+        
+        card.appendChild(badge);
         imgWrap.appendChild(canvas);
+        imgWrap.appendChild(copyOverlay);
         imgWrap.appendChild(dlBtn);
         card.appendChild(imgWrap);
         
         filmScroll.appendChild(card);
     });
+}
+
+async function copyFrame(idx, overlay) {
+    try {
+        const canvas = currentFrames[idx].canvas;
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+        ]);
+        
+        // Show copied feedback
+        overlay.classList.add('show');
+        setTimeout(() => {
+            overlay.classList.remove('show');
+        }, 1500);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        // Fallback: create a temporary textarea to copy data URL
+        try {
+            const dataUrl = currentFrames[idx].canvas.toDataURL('image/png');
+            const textarea = document.createElement('textarea');
+            textarea.value = dataUrl;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            overlay.classList.add('show');
+            setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 1500);
+        } catch (fallbackErr) {
+            console.error('Fallback copy failed:', fallbackErr);
+        }
+    }
 }
 
 function downloadFrame(idx) {
@@ -249,7 +358,6 @@ window.resetApp = function() {
     document.getElementById('gifImage').src = '';
     filmScroll.innerHTML = '';
     filmContainer.classList.remove('visible');
-    infoFooter.classList.remove('visible');
     uploadContainer.style.display = 'block';
     fileInput.value = '';
     if (loadingFilename) loadingFilename.textContent = '';
