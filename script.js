@@ -78,7 +78,7 @@ document.getElementById('loadExampleBtn')?.addEventListener('click', async () =>
     } catch (err) {
         console.error('Failed to load example:', err);
         loading.classList.remove('active');
-        uploadContainer.style.display = 'block';
+        uploadContainer.style.display = 'flex';
         alert('Could not load example GIF. Please try uploading your own.');
     } finally {
         // Restore button state
@@ -358,11 +358,45 @@ window.resetApp = function() {
     document.getElementById('gifImage').src = '';
     filmScroll.innerHTML = '';
     filmContainer.classList.remove('visible');
-    uploadContainer.style.display = 'block';
+    uploadContainer.style.display = 'flex';
     fileInput.value = '';
     if (loadingFilename) loadingFilename.textContent = '';
     loading.classList.remove('active');
+    // Remove url param from address bar
+    if (window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 };
 
+// Load GIF from URL query parameter
+async function loadFromUrlParam() {
+    const params = new URLSearchParams(window.location.search);
+    const url = params.get('url');
+    if (!url) return;
 
+    try {
+        loading.classList.add('active');
+        if (loadingFilename) loadingFilename.textContent = url;
+        uploadContainer.style.display = 'none';
 
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch GIF');
+        
+        const blob = await response.blob();
+        if (!blob.type.includes('image/gif')) {
+            throw new Error('URL does not point to a valid GIF');
+        }
+        
+        const fileName = url.split('/').pop() || 'image.gif';
+        const file = new File([blob], fileName, { type: 'image/gif' });
+        await handleFile(file);
+    } catch (err) {
+        console.error('Failed to load from URL:', err);
+        loading.classList.remove('active');
+        uploadContainer.style.display = 'flex';
+        alert('Could not load GIF from URL: ' + err.message);
+    }
+}
+
+// Check for URL param on page load
+loadFromUrlParam();
