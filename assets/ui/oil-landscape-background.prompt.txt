@@ -1,0 +1,12 @@
+Generation mode: built-in image_gen
+
+Use case: stylized-concept
+Asset type: full-bleed background image for a minimal GIF frame extraction web app, landscape 16:9.
+Primary request: an elegant, restrained oil painting background.
+Scene/backdrop: an atmospheric, almost abstract waterside landscape dissolving into luminous morning mist, softly suggested distant banks and a quiet expanse of water.
+Style/medium: fine oil painting on linen, nuanced layered pigment, beautiful visible but delicate broad brushwork, softly scumbled edges; sophisticated gallery painting.
+Composition/framing: panoramic edge-to-edge artwork; the central half and upper center remain very pale, airy and low contrast to support an upload card and small navigation text; softly suggested landscape and more tactile paint toward outer edges and lower corners. No hard horizon through the center. Works cropped to a tall mobile screen.
+Lighting/mood: quiet diffuse daylight, calm, elegant, spacious.
+Color palette: harmonize with an existing pale blue UI, powder blue, muted slate blue, pearl white and subtle warm ivory; muted saturation, predominantly light values.
+Materials/textures: authentic oil pigment and subtle linen texture, intentional painterly marks, no digital blur.
+Constraints: background artwork only, no UI, no cards, no text, no lettering, no logos, no signature, no watermark, no frame; no people, buildings or conspicuous focal objects. Avoid high contrast, dense detail in the middle, neon color, photorealism and synthetic gradients.

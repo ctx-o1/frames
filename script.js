@@ -26,12 +26,22 @@ const filmContainer = document.getElementById('filmContainer');
 const infoPanel = document.getElementById('infoPanel');
 const loading = document.getElementById('loading');
 const loadingFilename = document.getElementById('loadingFilename');
+const appStatus = document.getElementById('appStatus');
 
 let currentFrames = [];
 let currentFileName = '';
 let currentGifUrl = null;
 
-uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('click', (event) => {
+    if (event.target !== fileInput) fileInput.click();
+});
+
+uploadZone.addEventListener('keydown', (event) => {
+    if (event.target === uploadZone && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        fileInput.click();
+    }
+});
 
 uploadZone.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -88,6 +98,7 @@ document.getElementById('loadExampleBtn')?.addEventListener('click', async () =>
 });
 
 async function handleFile(file) {
+    appStatus.textContent = `Decoding ${file.name}.`;
     currentFileName = file.name.replace(/\.[^/.]+$/, "");
     currentFrames = [];
     
@@ -207,6 +218,8 @@ async function handleFile(file) {
         // Hide loading, show everything at once
         loading.classList.remove('active');
         filmContainer.classList.add('visible');
+        appStatus.textContent = `${frames.length} frames ready. Select a frame to copy it, or download the frames.`;
+        document.getElementById('downloadAll').focus({ preventScroll: true });
         
     } catch (err) {
         console.error(err);
@@ -240,6 +253,7 @@ function renderFilmStrip() {
         // Copy overlay - shows on click feedback
         const copyOverlay = document.createElement('div');
         copyOverlay.className = 'copy-overlay';
+        copyOverlay.setAttribute('aria-hidden', 'true');
         copyOverlay.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -250,6 +264,9 @@ function renderFilmStrip() {
         // Redesigned minimal download button - icon only, top right
         const dlBtn = document.createElement('button');
         dlBtn.className = 'frame-download';
+        dlBtn.type = 'button';
+        dlBtn.setAttribute('aria-label', `Download frame ${idx + 1}`);
+        dlBtn.title = `Download frame ${idx + 1}`;
         dlBtn.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -271,6 +288,11 @@ function renderFilmStrip() {
         
         card.appendChild(badge);
         imgWrap.appendChild(canvas);
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'frame-copy';
+        copyBtn.setAttribute('aria-label', `Copy frame ${idx + 1} to clipboard`);
+        imgWrap.appendChild(copyBtn);
         imgWrap.appendChild(copyOverlay);
         imgWrap.appendChild(dlBtn);
         card.appendChild(imgWrap);
@@ -289,6 +311,7 @@ async function copyFrame(idx, overlay) {
         
         // Show copied feedback
         overlay.classList.add('show');
+        appStatus.textContent = `Frame ${idx + 1} copied to clipboard.`;
         setTimeout(() => {
             overlay.classList.remove('show');
         }, 1500);
@@ -298,20 +321,25 @@ async function copyFrame(idx, overlay) {
         try {
             const dataUrl = currentFrames[idx].canvas.toDataURL('image/png');
             const textarea = document.createElement('textarea');
+            const previouslyFocused = document.activeElement;
             textarea.value = dataUrl;
             textarea.style.position = 'fixed';
             textarea.style.opacity = '0';
             document.body.appendChild(textarea);
             textarea.select();
-            document.execCommand('copy');
+            const copied = document.execCommand('copy');
             document.body.removeChild(textarea);
+            previouslyFocused?.focus({ preventScroll: true });
+            if (!copied) throw new Error('Clipboard copy was not supported');
             
             overlay.classList.add('show');
+            appStatus.textContent = `Frame ${idx + 1} copied as a data URL.`;
             setTimeout(() => {
                 overlay.classList.remove('show');
             }, 1500);
         } catch (fallbackErr) {
             console.error('Fallback copy failed:', fallbackErr);
+            appStatus.textContent = `Could not copy frame ${idx + 1}. Use its download button instead.`;
         }
     }
 }
@@ -366,6 +394,8 @@ window.resetApp = function() {
     if (window.history.replaceState) {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
+    appStatus.textContent = 'Ready to upload a GIF.';
+    uploadZone.focus({ preventScroll: true });
 };
 
 // Load GIF from URL query parameter
