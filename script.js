@@ -1,7 +1,7 @@
 import { parseGIF, decompressFrames } from 'https://esm.sh/gifuct-js@2.0.0';
 
 // Example GIF configuration - just change this path if you rename the file
-const EXAMPLE_GIF_PATH = './bomb.gif';
+const EXAMPLE_GIF_PATH = './ghibli-example.gif';
 
 function createPatchCanvas(frame) {
     const canvas = document.createElement('canvas');
@@ -24,9 +24,70 @@ const fileInput = document.getElementById('fileInput');
 const filmScroll = document.getElementById('filmScroll');
 const filmContainer = document.getElementById('filmContainer');
 const infoPanel = document.getElementById('infoPanel');
-const loading = document.getElementById('loading');
-const loadingFilename = document.getElementById('loadingFilename');
 const appStatus = document.getElementById('appStatus');
+const toast = document.getElementById('toast');
+
+// Play the upload view's exit animation, then hide it. Safe to call repeatedly.
+let uploadLeaving = null;
+function hideUpload() {
+    if (uploadContainer.style.display === 'none') return Promise.resolve();
+    if (uploadLeaving) return uploadLeaving;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        uploadContainer.style.display = 'none';
+        return Promise.resolve();
+    }
+    uploadContainer.classList.add('leaving');
+    const leave = new Promise((resolve) => {
+        const done = () => {
+            // showUpload() may have cancelled this exit; then leave the view alone
+            if (uploadLeaving === leave) {
+                uploadContainer.style.display = 'none';
+                uploadContainer.classList.remove('leaving');
+                uploadLeaving = null;
+            }
+            resolve();
+        };
+        uploadContainer.addEventListener('animationend', done, { once: true });
+        setTimeout(done, 300);
+    });
+    uploadLeaving = leave;
+    return leave;
+}
+
+// Bring the upload view back, cancelling an exit that is still playing.
+function showUpload() {
+    uploadLeaving = null;
+    uploadContainer.classList.remove('leaving');
+    uploadContainer.style.display = 'flex';
+}
+
+// Bumped by each new load and by reset, so a stale decode loop stops quietly.
+let loadId = 0;
+
+// Slim bar under the nav: sweeps while loading, then fills as frames decode.
+const progressBar = document.getElementById('progressBar');
+let progressTimer = 0;
+function startProgress() {
+    clearTimeout(progressTimer);
+    progressBar.style.setProperty('--progress', 0);
+    progressBar.classList.add('active', 'indeterminate');
+}
+function setProgress(fraction) {
+    progressBar.classList.remove('indeterminate');
+    progressBar.style.setProperty('--progress', fraction);
+}
+function endProgress() {
+    setProgress(1);
+    progressTimer = setTimeout(() => progressBar.classList.remove('active'), 300);
+}
+
+let toastTimer = 0;
+function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+}
 
 let currentFrames = [];
 let currentFileName = '';
@@ -67,18 +128,14 @@ fileInput.addEventListener('change', (e) => {
 // Load example GIF
 document.getElementById('loadExampleBtn')?.addEventListener('click', async () => {
     const loadBtn = document.getElementById('loadExampleBtn');
-    const originalText = loadBtn?.textContent;
     
     try {
-        // Show loading state on button
-        if (loadBtn) loadBtn.textContent = 'Loading...';
         if (loadBtn) loadBtn.disabled = true;
         
-        // Show loading screen immediately
-        loading.classList.add('active');
+        // Start the exit animation while the example downloads
         const exampleName = EXAMPLE_GIF_PATH.split('/').pop();
-        if (loadingFilename) loadingFilename.textContent = exampleName;
-        uploadContainer.style.display = 'none';
+        startProgress();
+        hideUpload();
         
         const response = await fetch(EXAMPLE_GIF_PATH);
         if (!response.ok) throw new Error('Failed to load example');
@@ -87,17 +144,17 @@ document.getElementById('loadExampleBtn')?.addEventListener('click', async () =>
         await handleFile(file);
     } catch (err) {
         console.error('Failed to load example:', err);
-        loading.classList.remove('active');
-        uploadContainer.style.display = 'flex';
-        alert('Could not load example GIF. Please try uploading your own.');
+        showUpload();
+        endProgress();
+        showToast('Could not load the example GIF. Try uploading your own.');
     } finally {
         // Restore button state
-        if (loadBtn) loadBtn.textContent = originalText;
         if (loadBtn) loadBtn.disabled = false;
     }
 });
 
 async function handleFile(file) {
+    const thisLoad = ++loadId;
     appStatus.textContent = `Decoding ${file.name}.`;
     currentFileName = file.name.replace(/\.[^/.]+$/, "");
     currentFrames = [];
@@ -108,19 +165,19 @@ async function handleFile(file) {
     }
     currentGifUrl = URL.createObjectURL(file);
     
-    // Clear and hide everything first
+    // Clear and hide everything first. The exit animation runs on the compositor,
+    // so reading and parsing happen while it plays instead of after it.
     filmScroll.innerHTML = '';
     filmContainer.classList.remove('visible');
-    uploadContainer.style.display = 'none';
-    loading.classList.add('active');
-    
-    // Show filename in loading screen
-    if (loadingFilename) {
-        loadingFilename.textContent = file.name;
-    }
+    startProgress();
+    const uploadHidden = hideUpload();
+    const gifImage = document.getElementById('gifImage');
+    gifImage.src = currentGifUrl;
+    const previewReady = gifImage.decode().catch(() => {});
     
     try {
         const buffer = await file.arrayBuffer();
+        if (thisLoad !== loadId) return;
         const gif = parseGIF(buffer);
         const frames = decompressFrames(gif, true);
         
@@ -149,8 +206,12 @@ async function handleFile(file) {
         // Disable alpha premultiplication for accurate GIF rendering
         ctx.imageSmoothingEnabled = false;
 
-        // Process all frames while keeping loading screen visible
-        const progressText = document.querySelector('#loading .loading-text');
+        // Show the preview now; frame cards animate in as they are decoded
+        const downloadAll = document.getElementById('downloadAll');
+        downloadAll.disabled = true;
+        await Promise.all([uploadHidden, previewReady]);
+        if (thisLoad !== loadId) return;
+        filmContainer.classList.add('visible');
         
         // Store previous frame canvas for disposal type 3 (restore to previous)
         let previousFrameCanvas = null;
@@ -199,106 +260,97 @@ async function handleFile(file) {
                 delay: frame.delay || 100,
                 index: i
             });
-
-            // Update progress text
-            if (progressText) {
-                progressText.textContent = `Decoding frames... ${i + 1} / ${frames.length}`;
-            }
+            filmScroll.appendChild(createFrameCard(currentFrames[i], i));
+            setProgress((i + 1) / frames.length);
             
             // Allow UI to breathe every few frames
-            if (i % 3 === 0) await new Promise(r => requestAnimationFrame(r));
+            if (i % 3 === 0) {
+                await new Promise(r => requestAnimationFrame(r));
+                if (thisLoad !== loadId) return;
+            }
         }
 
-        // All frames ready - build the DOM
-        renderFilmStrip();
-        
-        // Set the GIF source
-        document.getElementById('gifImage').src = currentGifUrl;
-
-        // Hide loading, show everything at once
-        loading.classList.remove('active');
-        filmContainer.classList.add('visible');
+        downloadAll.disabled = false;
+        endProgress();
         appStatus.textContent = `${frames.length} frames ready. Select a frame to copy it, or download the frames.`;
         document.getElementById('downloadAll').focus({ preventScroll: true });
         
     } catch (err) {
+        if (thisLoad !== loadId) return;
         console.error(err);
-        loading.classList.remove('active');
-        alert('Error reading GIF: ' + err.message);
+        endProgress();
+        showToast('Could not read that GIF: ' + err.message);
         resetApp();
     }
 }
 
-function renderFilmStrip() {
-    filmScroll.innerHTML = '';
+function createFrameCard(frame, idx) {
+    const card = document.createElement('div');
+    card.className = 'frame-card';
+    card.style.zIndex = idx;
+    card.style.setProperty('--i', idx);
+    card.title = 'Click to copy';
     
-    currentFrames.forEach((frame, idx) => {
-        const card = document.createElement('div');
-        card.className = 'frame-card';
-        card.style.zIndex = idx;
-        card.title = 'Click to copy';
-        
-        // Frame number badge - now outside the image
-        const badge = document.createElement('div');
-        badge.className = 'frame-badge';
-        badge.textContent = String(idx + 1).padStart(3, '0');
-        
-        const imgWrap = document.createElement('div');
-        imgWrap.className = 'frame-image';
-        
-        const canvas = frame.canvas;
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        
-        // Copy overlay - shows on click feedback
-        const copyOverlay = document.createElement('div');
-        copyOverlay.className = 'copy-overlay';
-        copyOverlay.setAttribute('aria-hidden', 'true');
-        copyOverlay.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <span>Copied!</span>
-        `;
-        
-        // Redesigned minimal download button - icon only, top right
-        const dlBtn = document.createElement('button');
-        dlBtn.className = 'frame-download';
-        dlBtn.type = 'button';
-        dlBtn.setAttribute('aria-label', `Download frame ${idx + 1}`);
-        dlBtn.title = `Download frame ${idx + 1}`;
-        dlBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-        `;
-        dlBtn.onclick = (e) => {
-            e.stopPropagation();
-            downloadFrame(idx);
-        };
-        
-        // Click to copy
-        card.addEventListener('click', async (e) => {
-            // Don't copy if clicking download button
-            if (e.target.closest('.frame-download')) return;
-            await copyFrame(idx, copyOverlay);
-        });
-        
-        card.appendChild(badge);
-        imgWrap.appendChild(canvas);
-        const copyBtn = document.createElement('button');
-        copyBtn.type = 'button';
-        copyBtn.className = 'frame-copy';
-        copyBtn.setAttribute('aria-label', `Copy frame ${idx + 1} to clipboard`);
-        imgWrap.appendChild(copyBtn);
-        imgWrap.appendChild(copyOverlay);
-        imgWrap.appendChild(dlBtn);
-        card.appendChild(imgWrap);
-        
-        filmScroll.appendChild(card);
+    // Frame number badge - now outside the image
+    const badge = document.createElement('div');
+    badge.className = 'frame-badge';
+    badge.textContent = String(idx + 1).padStart(3, '0');
+    
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'frame-image';
+    
+    const canvas = frame.canvas;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    
+    // Copy overlay - shows on click feedback
+    const copyOverlay = document.createElement('div');
+    copyOverlay.className = 'copy-overlay';
+    copyOverlay.setAttribute('aria-hidden', 'true');
+    copyOverlay.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Copied!</span>
+    `;
+    
+    // Redesigned minimal download button - icon only, top right
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'frame-download';
+    dlBtn.type = 'button';
+    dlBtn.setAttribute('aria-label', `Download frame ${idx + 1}`);
+    dlBtn.title = `Download frame ${idx + 1}`;
+    dlBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+    `;
+    dlBtn.onclick = (e) => {
+        e.stopPropagation();
+        downloadFrame(idx);
+    };
+    
+    // Click to copy
+    card.addEventListener('click', async (e) => {
+        // Don't copy if clicking download button
+        if (e.target.closest('.frame-download')) return;
+        await copyFrame(idx, copyOverlay);
     });
+    
+    card.appendChild(badge);
+    imgWrap.appendChild(canvas);
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'frame-copy';
+    copyBtn.setAttribute('aria-label', `Copy frame ${idx + 1} to clipboard`);
+    imgWrap.appendChild(copyBtn);
+    imgWrap.appendChild(copyOverlay);
+    imgWrap.appendChild(dlBtn);
+    card.appendChild(imgWrap);
+    
+    return card;
 }
 
 async function copyFrame(idx, overlay) {
@@ -372,6 +424,8 @@ document.getElementById('downloadAll').addEventListener('click', async () => {
 
 
 window.resetApp = function() {
+    loadId++;
+    endProgress();
     // Clear canvas references to free memory
     currentFrames.forEach(f => {
         f.canvas.width = 0;
@@ -386,10 +440,9 @@ window.resetApp = function() {
     document.getElementById('gifImage').src = '';
     filmScroll.innerHTML = '';
     filmContainer.classList.remove('visible');
-    uploadContainer.style.display = 'flex';
+    showUpload();
     fileInput.value = '';
-    if (loadingFilename) loadingFilename.textContent = '';
-    loading.classList.remove('active');
+    document.getElementById('downloadAll').disabled = false;
     // Remove url param from address bar
     if (window.history.replaceState) {
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -405,9 +458,8 @@ async function loadFromUrlParam() {
     if (!url) return;
 
     try {
-        loading.classList.add('active');
-        if (loadingFilename) loadingFilename.textContent = url;
-        uploadContainer.style.display = 'none';
+        startProgress();
+        hideUpload();
 
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch GIF');
@@ -422,9 +474,9 @@ async function loadFromUrlParam() {
         await handleFile(file);
     } catch (err) {
         console.error('Failed to load from URL:', err);
-        loading.classList.remove('active');
-        uploadContainer.style.display = 'flex';
-        alert('Could not load GIF from URL: ' + err.message);
+        showUpload();
+        endProgress();
+        showToast('Could not load GIF from URL: ' + err.message);
     }
 }
 
