@@ -39,6 +39,29 @@ body {
     flex-direction: column;
 }
 
+/* WebGL ASCII rendering of the painting; the CSS background shows until it is ready. */
+.ascii-bg {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    pointer-events: none;
+}
+
+.ascii-bg.ready {
+    opacity: 1;
+}
+
+/* Tuning panel (press `), kept clear of the GitHub button. */
+.lil-gui.autoPlace.ascii-tuner {
+    left: 15px;
+    right: auto;
+    max-height: calc(100dvh - 30px);
+}
+
 body:has(.upload-container:not([style*="none"])) {
     justify-content: center;
     align-items: center;
@@ -764,6 +787,10 @@ input[type="file"] { display: none; }
 
     .spinner {
         animation: none;
+    }
+
+    .ascii-bg {
+        transition: none;
     }
 
     .film-scroll {
