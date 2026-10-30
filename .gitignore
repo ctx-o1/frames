@@ -147,3 +147,7 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local UI review screenshots and extracted build dependencies
+/drafts/accessibility-*.png
+/tools/inkra-build/
