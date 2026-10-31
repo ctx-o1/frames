@@ -61,6 +61,58 @@ function showUpload() {
     uploadContainer.style.display = 'flex';
 }
 
+// The preview flies in from where the GIF came from: the example thumbnail (a fixed
+// copy holds its place while the upload view leaves) or the point a file was dropped.
+let flight = null;
+function reducedMotion() {
+    return matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function startFlight(img) {
+    if (reducedMotion()) return;
+    const rect = img.getBoundingClientRect();
+    const ghost = img.cloneNode();
+    ghost.className = 'flight-ghost';
+    ghost.alt = '';
+    Object.assign(ghost.style, {
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`
+    });
+    document.body.appendChild(ghost);
+    flight = { ghost, rect, showcase: true };
+}
+
+function startFlightAt(x, y) {
+    if (reducedMotion()) return;
+    const size = 48;
+    flight = { ghost: null, rect: { left: x - size / 2, top: y - size / 2, width: size }, showcase: false };
+}
+
+function cancelFlight() {
+    flight?.ghost?.remove();
+    flight = null;
+    filmContainer.classList.remove('flying', 'showcase');
+}
+
+function landFlight(target) {
+    if (!flight) return;
+    const { ghost, rect } = flight;
+    flight = null;
+    const to = target.getBoundingClientRect();
+    ghost?.remove();
+    if (!to.width) return;
+    const dx = rect.left - to.left;
+    const dy = rect.top - to.top;
+    const s = rect.width / to.width;
+    target.style.transformOrigin = '0 0';
+    target.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(${s})`, borderRadius: '12px' },
+        { transform: 'none', borderRadius: '8px' }
+    ], { duration: 700, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+}
+
 // Bumped by each new load and by reset, so a stale decode loop stops quietly.
 let loadId = 0;
 
@@ -117,7 +169,10 @@ uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadZone.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
-    if (file && file.type === 'image/gif') handleFile(file);
+    if (file && file.type === 'image/gif') {
+        startFlightAt(e.clientX, e.clientY);
+        handleFile(file);
+    }
 });
 
 fileInput.addEventListener('change', (e) => {
@@ -135,8 +190,10 @@ document.getElementById('loadExampleBtn')?.addEventListener('click', async () =>
         // Start the exit animation while the example downloads
         const exampleName = EXAMPLE_GIF_PATH.split('/').pop();
         startProgress();
+        const thumb = loadBtn?.querySelector('img');
+        if (thumb) startFlight(thumb);
         hideUpload();
-        
+
         const response = await fetch(EXAMPLE_GIF_PATH);
         if (!response.ok) throw new Error('Failed to load example');
         const blob = await response.blob();
@@ -144,6 +201,7 @@ document.getElementById('loadExampleBtn')?.addEventListener('click', async () =>
         await handleFile(file);
     } catch (err) {
         console.error('Failed to load example:', err);
+        cancelFlight();
         showUpload();
         endProgress();
         showToast('Could not load the example GIF. Try uploading your own.');
@@ -211,7 +269,10 @@ async function handleFile(file) {
         downloadAll.disabled = true;
         await Promise.all([uploadHidden, previewReady]);
         if (thisLoad !== loadId) return;
+        filmContainer.classList.toggle('flying', !!flight);
+        filmContainer.classList.toggle('showcase', !!flight?.showcase);
         filmContainer.classList.add('visible');
+        landFlight(gifImage);
         
         // Store previous frame canvas for disposal type 3 (restore to previous)
         let previousFrameCanvas = null;
@@ -289,6 +350,8 @@ function createFrameCard(frame, idx) {
     card.className = 'frame-card';
     card.style.zIndex = idx;
     card.style.setProperty('--i', idx);
+    // Only the first screenful develops out of blur; later cards just rise in
+    if (idx >= 24) card.classList.add('late');
     card.title = 'Click to copy';
     
     // Frame number badge - now outside the image
@@ -440,6 +503,7 @@ window.resetApp = function() {
     document.getElementById('gifImage').src = '';
     filmScroll.innerHTML = '';
     filmContainer.classList.remove('visible');
+    cancelFlight();
     showUpload();
     fileInput.value = '';
     document.getElementById('downloadAll').disabled = false;
