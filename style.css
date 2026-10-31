@@ -193,7 +193,7 @@ body:has(.upload-container:not([style*="none"])) .header {
     text-align: center;
 }
 
-.header p {
+.header h1 {
     font-family: var(--font-body);
     font-size: var(--text-base);
     color: var(--text);
@@ -788,7 +788,7 @@ body:has(.film-container.visible) .footer {
         padding: calc(var(--nav-height) + 0.25rem) 1rem 0.75rem;
     }
 
-    .header p {
+    .header h1 {
         font-size: var(--text-sm);
     }
 

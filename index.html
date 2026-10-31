@@ -3,7 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Split GIF into frames</title>
+    <title>/frames · Split a GIF into frames in your browser</title>
+    <meta name="description" content="Split any GIF into its individual frames, right in your browser. Preview every frame, copy one to the clipboard, or download them all as PNGs in a ZIP. Nothing is uploaded.">
+    <link rel="canonical" href="https://ctx-o1.github.io/frames/">
+    <meta name="theme-color" content="#d1d3d1">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="/frames">
+    <meta property="og:title" content="/frames · Split a GIF into frames in your browser">
+    <meta property="og:description" content="Split any GIF into its individual frames, right in your browser. Preview every frame, copy one to the clipboard, or download them all as PNGs in a ZIP. Nothing is uploaded.">
+    <meta property="og:url" content="https://ctx-o1.github.io/frames/">
+    <meta property="og:image" content="https://ctx-o1.github.io/frames/assets/ui/og.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="/frames: a GIF laid out as a row of its individual frames over a misty painted lake">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="/frames · Split a GIF into frames in your browser">
+    <meta name="twitter:description" content="Split any GIF into its individual frames, right in your browser. Preview every frame, copy one to the clipboard, or download them all as PNGs in a ZIP. Nothing is uploaded.">
+    <meta name="twitter:image" content="https://ctx-o1.github.io/frames/assets/ui/og.jpg">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "/frames",
+        "url": "https://ctx-o1.github.io/frames/",
+        "description": "Split any GIF into its individual frames, right in your browser. Preview every frame, copy one to the clipboard, or download them all as PNGs in a ZIP. Nothing is uploaded.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+    </script>
     <link rel="preload" as="image" href="assets/ui/oil-landscape-background.webp" type="image/webp" fetchpriority="high">
     <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js" defer></script>
     <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js" defer></script>
@@ -28,7 +60,7 @@
     <div class="progress-bar" id="progressBar" aria-hidden="true"><span></span></div>
 
     <header class="header">
-        <p>EXTRACT FRAMES FROM GIFs</p>
+        <h1>EXTRACT FRAMES FROM GIFs</h1>
     </header>
 
     <div class="upload-container" id="uploadContainer">
