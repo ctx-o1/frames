@@ -897,6 +897,26 @@ body:has(.film-container.visible) .footer {
     }
 }
 
+/* Hide the URL stub on phones, including wider landscape viewports. */
+@media (max-width: 640px), (max-width: 960px) and (max-height: 500px) {
+    .footer {
+        display: none;
+    }
+}
+
+/* Keep upload controls below the nav and tagline on short screens. */
+@media (max-width: 960px) and (max-height: 500px) {
+    body:has(.upload-container:not([style*="none"])) {
+        justify-content: flex-start;
+        padding-top: calc(var(--nav-height) + 3rem);
+    }
+
+    body:has(.upload-container:not([style*="none"])) .header {
+        top: var(--nav-height);
+        padding: 0.5rem 1rem;
+    }
+}
+
 @media (hover: hover) {
     .frame-card:nth-child(even) {
         transform: rotate(1deg);
