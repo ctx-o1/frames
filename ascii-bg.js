@@ -342,8 +342,9 @@ async function init() {
 
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-        const w = Math.max(1, Math.round(innerWidth * dpr));
-        const h = Math.max(1, Math.round(innerHeight * dpr));
+        const { width, height } = canvas.getBoundingClientRect();
+        const w = Math.max(1, Math.round(width * dpr));
+        const h = Math.max(1, Math.round(height * dpr));
         if (canvas.width === w && canvas.height === h && glyphTarget) return;
         canvas.width = w;
         canvas.height = h;
@@ -452,6 +453,8 @@ async function init() {
         ripple.at = clock;
     }, { passive: true });
     addEventListener('resize', () => { resize(); kick(); });
+    // Fixed elements can resize as mobile browser bars retract without a window resize.
+    new ResizeObserver(() => { resize(); kick(); }).observe(canvas);
     document.addEventListener('visibilitychange', kick);
     reducedMotion.addEventListener('change', kick);
     canvas.addEventListener('webglcontextlost', (e) => e.preventDefault());
