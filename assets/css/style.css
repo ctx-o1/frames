@@ -41,7 +41,7 @@ body {
     font-family: var(--font-body);
     /* Tiny inline copy of the painting paints instantly; the full image covers it once loaded. */
     background:
-        url('assets/ui/oil-landscape-background.webp') center / cover no-repeat fixed,
+        url('../ui/oil-landscape-background.webp') center / cover no-repeat fixed,
         url('data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAAAwBQCdASogABIAPqlImkmmJKKhN/VYAMAVCWcAwzQQ7mm1wLBft9TtG+sQ2JFz1GOngAD+8daJzJaRRD5hreIBya9DZ4qFfHtNiS4O6zPFgEEWG+/RL4mwdw9ojEqhZAwN1wOs0E9Syjurezew4AAA') center / cover no-repeat fixed,
         #d1d3d1;
     color: var(--text);

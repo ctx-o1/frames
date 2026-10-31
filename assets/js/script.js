@@ -1,7 +1,7 @@
 import { parseGIF, decompressFrames } from 'https://esm.sh/gifuct-js@2.0.0';
 
 // Example GIF configuration - just change this path if you rename the file
-const EXAMPLE_GIF_PATH = './ghibli-example.gif';
+const EXAMPLE_GIF_PATH = './assets/examples/ghibli-example.gif';
 
 function createPatchCanvas(frame) {
     const canvas = document.createElement('canvas');

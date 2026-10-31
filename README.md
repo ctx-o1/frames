@@ -2,7 +2,7 @@
 
 lightweight tool to extract individual frames from GIF locally in browser
 
-![](./image.png)
+![](./design/readme-screenshot.png)
 
 
 
