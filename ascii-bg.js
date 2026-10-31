@@ -2,7 +2,7 @@
 // Falls back to the plain CSS background if WebGL2 is unavailable.
 // Press ` (or open with ?tune) to show a tuning panel; tweaks are kept in localStorage.
 
-const IMAGE_URL = 'assets/ui/oil-landscape-background.png';
+const IMAGE_URL = 'assets/ui/oil-landscape-background.webp';
 const RAMP = ' .:-~=+*o%#@';
 const ATLAS_CELL = { w: 36, h: 60 };
 const MAX_DPR = 1.75;
